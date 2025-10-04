@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABB Bot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2f7;
+            background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
+        }
+        
+        #chat-container {
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background-color: rgba(255, 255, 255, 0.75);
+        }
+        
+        #chat-window::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #chat-window::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        #chat-window::-webkit-scrollbar-thumb {
+            background: #a5b4fc;
+            border-radius: 3px;
+        }
+        
+        #chat-window::-webkit-scrollbar-thumb:hover {
+            background: #818cf8;
+        }
+        
+        .topic-button,
+        .sample-question {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .topic-button:hover,
+        .sample-question:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background-color: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        #graph-modal {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen">
+
+    <div id="chat-container" class="w-full max-w-lg mx-4 rounded-3xl shadow-2xl flex flex-col border-2 border-indigo-200 overflow-hidden" style="height: 95vh; max-height: 800px;">
+        <!-- Header -->
+        <div class="p-5 bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center justify-between text-white shadow-lg">
+            <div class="flex items-center">
+                <div class="relative w-12 h-12">
+                    <div class="w-12 h-12 rounded-full bg-white flex items-center justify-center p-1 shadow-md">
+                        <img src="ABB.webp" alt="ABB Logo" class="rounded-full w-10 h-10">
+
+                    </div>
+                    <span class="absolute bottom-0 right-0 block h-3.5 w-3.5 rounded-full bg-green-400 border-2 border-white"></span>
+                </div>
+                <div class="ml-4">
+                    <h1 class="text-xl font-bold">ABB Bot</h1>
+                    <p class="text-sm text-indigo-200">Active now</p>
+                </div>
+            </div>
+            <button id="tts-btn" class="text-white/80 p-3 rounded-full hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white transition-colors">
+                <svg id="tts-icon-on" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+                <svg id="tts-icon-off" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /> <path stroke-linecap="round" stroke-linejoin="round" d="M17 14l-5-5m0 5l5-5" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Chat Window -->
+        <div id="chat-window" class="flex-1 p-6 overflow-y-auto relative">
+            <!-- Initial Bot Message -->
+            <div class="message-fade-in flex items-start gap-4 justify-start mb-6">
+                <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 shadow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm max-w-xs" style="border-top-left-radius: 0;">
+                    <p class="text-sm text-gray-700">How can I help you today? Please select a topic.</p>
+                </div>
+            </div>
+            <!-- Topic Selection -->
+            <div id="topic-selection" class="my-8 message-fade-in" style="animation-delay: 0.5s;">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <button class="topic-button bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80" data-topic="sustainability">Sustainability</button>
+                    <button class="topic-button bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80" data-topic="stock">Stock Obsolescence</button>
+                </div>
+            </div>
+
+            <!-- Action Selection -->
+            <div id="action-selection" class="my-8 hidden" data-topic="">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <button class="topic-button bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80" data-action="ask">Ask a Question</button>
+                    <button class="topic-button bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80" data-action="graph">View Graph</button>
+                </div>
+            </div>
+
+            <!-- Sample Questions Section -->
+            <div id="sample-questions-sustainability" class="my-8 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-center">
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Argon consumption on Aug 1st?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Plastic reduced on Aug 1st?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Wood consumption on Aug 18th?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">CO2 emission on Aug 15th?</button>
+                </div>
+            </div>
+            <div id="sample-questions-stock" class="my-8 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-center">
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Total stock obsolescence in July?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Provision value for RMU_CONFIG?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Total manual provision?</button>
+                    <button class="sample-question bg-white/80 text-indigo-600 text-sm font-medium py-3 px-4 rounded-xl border border-gray-200/80">Closing stock for TANK CONFIG SR XT?</button>
+                </div>
+            </div>
+
+            <!-- Graph Modal -->
+            <div id="graph-modal" class="absolute inset-0 bg-white/80 backdrop-blur-sm p-4 z-10 hidden">
+                <div class="w-full h-full bg-white rounded-xl shadow-lg p-4 flex flex-col">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 id="graph-title" class="text-lg font-bold text-gray-800"></h2>
+                        <button id="close-graph-btn" class="text-gray-500 hover:text-gray-800">&times;</button>
+                    </div>
+                    <div class="flex-1 relative">
+                        <canvas id="data-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Typing indicator -->
+        <div id="typing-indicator" class="px-6 pb-2 hidden">
+            <div class="flex items-start gap-4 justify-start">
+                <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 shadow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm" style="border-top-left-radius: 0;">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="h-2 w-2 bg-indigo-400 rounded-full animate-bounce"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-200/50">
+            <form id="chat-form" class="flex items-center gap-2">
+                <button type="button" id="file-btn" class="text-gray-500 p-3 rounded-full hover:bg-gray-200/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                </button>
+                <input type="file" id="file-input" class="hidden">
+                <button type="button" id="mic-btn" class="text-gray-500 p-3 rounded-full hover:bg-gray-200/50 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                </button>
+                <input type="text" id="message-input" placeholder="Ask me anything..." autocomplete="off" class="flex-1 py-3 px-5 border-gray-300/70 border bg-white/50 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-inner">
+                <button type="submit" class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white p-3 rounded-full hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-transform transform hover:scale-110 shadow-lg flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+        <!-- Creator Credit -->
+        <div class="text-center text-xs text-gray-400 py-2">
+            Created by Vaibhav
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const chatWindow = document.getElementById('chat-window');
+            const chatForm = document.getElementById('chat-form');
+            const messageInput = document.getElementById('message-input');
+            const typingIndicator = document.getElementById('typing-indicator');
+            const topicSelection = document.getElementById('topic-selection');
+            const actionSelection = document.getElementById('action-selection');
+            const sampleSustainability = document.getElementById('sample-questions-sustainability');
+            const sampleStock = document.getElementById('sample-questions-stock');
+            const graphModal = document.getElementById('graph-modal');
+            const graphTitle = document.getElementById('graph-title');
+            const closeGraphBtn = document.getElementById('close-graph-btn');
+            const chartCanvas = document.getElementById('data-chart');
+
+            const fileBtn = document.getElementById('file-btn');
+            const fileInput = document.getElementById('file-input');
+            const micBtn = document.getElementById('mic-btn');
+            const ttsBtn = document.getElementById('tts-btn');
+            const ttsIconOn = document.getElementById('tts-icon-on');
+            const ttsIconOff = document.getElementById('tts-icon-off');
+
+            // --- API & State ---
+            const API_KEY = 'AIzaSyCeJAqVGR5Joo76GoFEHofOxqJZx5R1Vk4';
+            const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+            let isTtsEnabled = false;
+            let myChart;
+
+            // --- Event Listeners ---
+            chatForm.addEventListener('submit', handleFormSubmit);
+            topicSelection.addEventListener('click', handleTopicSelection);
+            actionSelection.addEventListener('click', handleActionSelection);
+            chatWindow.addEventListener('click', handleSampleQuestionClick);
+            ttsBtn.addEventListener('click', toggleTTS);
+            closeGraphBtn.addEventListener('click', hideGraph);
+            micBtn.addEventListener('click', handleMicClick);
+            fileBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+
+
+            // --- Event Handlers ---
+            function handleFormSubmit(e) {
+                e.preventDefault();
+                const message = messageInput.value.trim();
+                if (message) {
+                    displayUserMessage(message);
+                    messageInput.value = '';
+                    generateBotResponse(message);
+                }
+            }
+
+            function handleFileSelect(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const fileName = file.name;
+                    displayUserMessage(`Selected file: ${fileName}`);
+                    setTimeout(() => {
+                        displayBotMessage(`I've received the file "${fileName}". How can I help you with it?`);
+                    }, 800);
+                }
+                // Reset file input to allow selecting the same file again
+                e.target.value = null;
+            }
+
+            function handleTopicSelection(e) {
+                if (e.target.classList.contains('topic-button')) {
+                    const topic = e.target.dataset.topic;
+                    topicSelection.style.display = 'none';
+                    actionSelection.dataset.topic = topic;
+                    actionSelection.classList.remove('hidden');
+                }
+            }
+
+            function handleActionSelection(e) {
+                if (e.target.classList.contains('topic-button')) {
+                    const action = e.target.dataset.action;
+                    const topic = actionSelection.dataset.topic;
+                    actionSelection.classList.add('hidden');
+
+                    if (action === 'ask') {
+                        if (topic === 'sustainability') sampleSustainability.classList.remove('hidden');
+                        else if (topic === 'stock') sampleStock.classList.remove('hidden');
+                    } else if (action === 'graph') {
+                        if (topic === 'sustainability') showSustainabilityGraph();
+                        else if (topic === 'stock') showStockGraph();
+                    }
+                }
+            }
+
+            function handleSampleQuestionClick(e) {
+                if (e.target.classList.contains('sample-question')) {
+                    const question = e.target.textContent;
+                    displayUserMessage(question);
+                    generateBotResponse(question);
+                }
+            }
+
+            function toggleTTS() {
+                isTtsEnabled = !isTtsEnabled;
+                ttsIconOn.classList.toggle('hidden');
+                ttsIconOff.classList.toggle('hidden');
+                if (!isTtsEnabled) speechSynthesis.cancel();
+            }
+
+            // --- Data Definitions ---
+            const sustainabilityData = [{
+                date: 'Aug 1',
+                plastic: 12.5,
+                wood: 44.3,
+                energy: 316.6,
+                co2: 104.9,
+                argon: 14.1,
+                helium: 2.4
+            }, {
+                date: 'Aug 2',
+                plastic: 15.0,
+                wood: 26.8,
+                energy: 281.4,
+                co2: 119.2,
+                argon: 7.4,
+                helium: 1.5
+            }, {
+                date: 'Aug 4',
+                plastic: 18.4,
+                wood: 58.0,
+                energy: 307.0,
+                co2: 72.4,
+                argon: 9.9,
+                helium: 4.5
+            }, {
+                date: 'Aug 14',
+                plastic: 18.2,
+                wood: 33.4,
+                energy: 208.2,
+                co2: 134.7,
+                argon: 9.3,
+                helium: 0
+            }, {
+                date: 'Aug 15',
+                plastic: 20.1,
+                wood: 0,
+                energy: 0,
+                co2: 134.7,
+                argon: 0,
+                helium: 0
+            }, {
+                date: 'Aug 16',
+                plastic: 0,
+                wood: 0,
+                energy: 0,
+                co2: 0,
+                argon: 9.3,
+                helium: 0
+            }, {
+                date: 'Aug 17',
+                plastic: 12.1,
+                wood: 0,
+                energy: 0,
+                co2: 0,
+                argon: 0,
+                helium: 0
+            }, {
+                date: 'Aug 18',
+                plastic: 0,
+                wood: 51.2,
+                energy: 0,
+                co2: 0,
+                argon: 0,
+                helium: 0
+            }, {
+                date: 'Aug 19',
+                plastic: 0,
+                wood: 0,
+                energy: 444.6,
+                co2: 122.2,
+                argon: 0,
+                helium: 0
+            }, ];
+
+            const stockData = [{
+                material: 'RMU_CONFIG',
+                provision: 276838.42
+            }, {
+                material: 'Extensible Tank',
+                provision: 172056.82
+            }, {
+                material: 'RMU SafeRing XT',
+                provision: 265540.66
+            }, {
+                material: 'Safelink CB',
+                provision: 260420.27
+            }, {
+                material: 'Tank+Mech RMU',
+                provision: 213450.09
+            }, {
+                material: 'Tank Module SR XT',
+                provision: 360319.28
+            }, ];
+
+            // --- Graphing Functions ---
+            function showGraph() {
+                graphModal.classList.remove('hidden');
+            }
+
+            function hideGraph() {
+                graphModal.classList.add('hidden');
+                if (myChart) {
+                    myChart.destroy();
+                }
+            }
+
+            function showSustainabilityGraph() {
+                graphTitle.textContent = 'Sustainability Metrics (August 2025)';
+                const labels = sustainabilityData.map(d => d.date);
+
+                if (myChart) myChart.destroy();
+                myChart = new Chart(chartCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Plastic Reduced (kg)',
+                            data: sustainabilityData.map(d => d.plastic),
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1,
+                            fill: false
+                        }, {
+                            label: 'Wood Consumption (kg)',
+                            data: sustainabilityData.map(d => d.wood),
+                            borderColor: 'rgb(153, 102, 255)',
+                            tension: 0.1,
+                            fill: false
+                        }, {
+                            label: 'Energy (kWh)',
+                            data: sustainabilityData.map(d => d.energy),
+                            borderColor: 'rgb(255, 159, 64)',
+                            tension: 0.1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                showGraph();
+            }
+
+            function showStockGraph() {
+                graphTitle.textContent = 'Stock Obsolescence Provision Value (INR)';
+                const labels = stockData.map(d => d.material);
+
+                if (myChart) myChart.destroy();
+                myChart = new Chart(chartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Provision Value (INR)',
+                            data: stockData.map(d => d.provision),
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.5)', 'rgba(54, 162, 235, 0.5)',
+                                'rgba(255, 206, 86, 0.5)', 'rgba(75, 192, 192, 0.5)',
+                                'rgba(153, 102, 255, 0.5)', 'rgba(255, 159, 64, 0.5)'
+                            ],
+                            borderColor: [
+                                'rgb(255, 99, 132)', 'rgb(54, 162, 235)',
+                                'rgb(255, 206, 86)', 'rgb(75, 192, 192)',
+                                'rgb(153, 102, 255)', 'rgb(255, 159, 64)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                showGraph();
+            }
+
+            // --- Custom File Data Logic ---
+            function getAnswerFromData(userInput) {
+                const lowerCaseInput = userInput.toLowerCase();
+
+                // Stock Data
+                if (lowerCaseInput.includes('stock') || lowerCaseInput.includes('provision') || lowerCaseInput.includes('rmu')) {
+                    if (lowerCaseInput.includes('total stock')) {
+                        return `<strong>Stock Report (July 2025)</strong><br><br><strong>Metric:</strong> Total Obsolescence<br><strong>Value:</strong> 10,323,663.44 INR`;
+                    }
+                    if (lowerCaseInput.includes('rmu_config')) {
+                        return `<strong>Stock Report</strong><br><br><strong>Material:</strong> RMU_CONFIG<br><strong>Provision Value:</strong> 276,838.42 INR`;
+                    }
+                    if (lowerCaseInput.includes('manual provision')) {
+                        return `<strong>Stock Report</strong><br><br><strong>Metric:</strong> Total Manual Provision<br><strong>Value:</strong> 3.78`;
+                    }
+                    if (lowerCaseInput.includes('tank config sr xt')) {
+                        return `<strong>Stock Report</strong><br><br><strong>Material:</strong> TANK CONFIG SR XT<br><strong>Closing Stock:</strong> 38 units`;
+                    }
+                }
+
+                // Sustainability Data
+                const dateMatch = lowerCaseInput.match(/aug(?:ust)?\s*(\d{1,2})/);
+                if (dateMatch) {
+                    const day = parseInt(dateMatch[1]);
+                    const dataPoint = sustainabilityData.find(d => d.date === `Aug ${day}`);
+                    if (dataPoint) {
+                        let metric = '';
+                        let value = '';
+                        let unit = '';
+
+                        if (lowerCaseInput.includes('plastic')) {
+                            metric = 'Plastic Reduced';
+                            value = dataPoint.plastic;
+                            unit = 'kg';
+                        } else if (lowerCaseInput.includes('wood')) {
+                            metric = 'Wood Consumption';
+                            value = dataPoint.wood;
+                            unit = 'kg';
+                        } else if (lowerCaseInput.includes('energy')) {
+                            metric = 'Energy Consumption';
+                            value = dataPoint.energy;
+                            unit = 'kWh';
+                        } else if (lowerCaseInput.includes('co2')) {
+                            metric = 'CO2 Emission';
+                            value = dataPoint.co2;
+                            unit = 'kg';
+                        } else if (lowerCaseInput.includes('argon')) {
+                            metric = 'Argon Consumption';
+                            value = dataPoint.argon;
+                            unit = 'kg';
+                        }
+
+                        if (metric) {
+                            return `<strong>Sustainability Report: Aug ${day}</strong><br><br><strong>Metric:</strong> ${metric}<br><strong>Value:</strong> ${value} ${unit}`;
+                        }
+                    }
+                }
+
+                return null;
+            }
+
+            // --- Bot Logic ---
+            async function generateBotResponse(userInput) {
+                showTypingIndicator();
+                const fileAnswer = getAnswerFromData(userInput);
+
+                if (fileAnswer) {
+                    setTimeout(() => {
+                        displayBotMessage(fileAnswer);
+                    }, 800);
+                } else {
+                    const geminiAnswer = await getGeminiResponse(userInput);
+                    displayBotMessage(geminiAnswer);
+                }
+            }
+
+            // --- Remaining functions (no changes) ---
+            // displayUserMessage, displayBotMessage, getGeminiResponse, speakText
+            // scrollToBottom, showTypingIndicator, hideTypingIndicator
+            // Speech Recognition logic
+            const displayUserMessage = (message) => {
+                topicSelection.style.display = 'none';
+                actionSelection.classList.add('hidden');
+                sampleSustainability.style.display = 'none';
+                sampleStock.style.display = 'none';
+
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('flex', 'items-start', 'gap-4', 'justify-end', 'mb-6', 'message-fade-in');
+                messageElement.innerHTML = `
+                <div class="bg-gradient-to-br from-indigo-600 to-purple-600 text-white p-4 rounded-2xl max-w-sm shadow-md" style="border-top-right-radius: 0;">
+                    <p class="text-sm">${message}</p>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow overflow-hidden">
+                     <img src="ABB.webp" alt="ABB Logo" class="w-12 h-12 rounded-full ml-auto shadow-md bg-white p-1">
+
+                </div>
+            `;
+                chatWindow.appendChild(messageElement);
+                scrollToBottom();
+            };
+
+            const displayBotMessage = (message) => {
+                hideTypingIndicator();
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('flex', 'items-start', 'gap-4', 'justify-start', 'mb-6', 'message-fade-in');
+                messageElement.innerHTML = `
+                 <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center flex-shrink-0 shadow">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+                </div>
+                <div class="bg-white p-4 rounded-2xl shadow-sm max-w-xs" style="border-top-left-radius: 0;">
+                    <p class="text-sm text-gray-700">${message}</p>
+                </div>
+            `;
+                chatWindow.appendChild(messageElement);
+                scrollToBottom();
+                speakText(message.replace(/<[^>]*>?/gm, '')); // Strip HTML for TTS
+            };
+
+            async function getGeminiResponse(userInput) {
+                try {
+                    const instructedPrompt = `You are a helpful assistant. Please respond only in English. Here is the user's message: "${userInput}"`;
+                    const payload = {
+                        contents: [{
+                            parts: [{
+                                text: instructedPrompt
+                            }]
+                        }]
+                    };
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API request failed with status ${response.status}`);
+                    const result = await response.json();
+                    return result.candidates ? .[0] ? .content ? .parts ? .[0] ? .text || "I'm not sure how to respond to that.";
+                } catch (error) {
+                    console.error("Error fetching from Gemini API:", error);
+                    return "Sorry, I'm having trouble connecting right now. Please try again later.";
+                }
+            }
+
+            function speakText(text) {
+                if ('speechSynthesis' in window && isTtsEnabled) {
+                    speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'en-US';
+                    speechSynthesis.speak(utterance);
+                }
+            }
+
+            function scrollToBottom() {
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+
+            function showTypingIndicator() {
+                typingIndicator.classList.remove('hidden');
+                scrollToBottom();
+            }
+
+            function hideTypingIndicator() {
+                typingIndicator.classList.add('hidden');
+            }
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            let recognition;
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.onstart = () => micBtn.classList.add('recording', 'bg-red-500/20', 'text-red-600');
+                recognition.onresult = (event) => {
+                    messageInput.value = event.results[0][0].transcript;
+                    messageInput.focus();
+                };
+                recognition.onend = () => micBtn.classList.remove('recording', 'bg-red-500/20', 'text-red-600');
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    recognition.stop();
+                };
+            } else {
+                console.log("Speech Recognition not supported.");
+                if (micBtn) micBtn.style.display = 'none';
+            }
+
+            function handleMicClick() {
+                if (SpeechRecognition) {
+                    if (micBtn.classList.contains('recording')) recognition.stop();
+                    else recognition.start();
+                }
+            }
+
+            scrollToBottom();
+        });
+    </script>
+</body>
+
+</html>
